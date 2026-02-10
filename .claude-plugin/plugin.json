@@ -1,0 +1,8 @@
+{
+  "name": "beast-plan",
+  "version": "1.0.0",
+  "description": "Automated iterative planning with 5-actor verification pipeline: Researcher, Planner, Skeptic, TDD Reviewer, Critic",
+  "author": {
+    "name": "Dmitrii Malakhov"
+  }
+}
