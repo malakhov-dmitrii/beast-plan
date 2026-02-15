@@ -45,21 +45,90 @@ Beast-plan's Skeptic catches every "we'll figure it out later" and forces the Pl
 
 ## Install
 
-Clone into your Claude Code plugins directory:
+### Method 1: Direct Install (Recommended)
 
 ```bash
-# Claude Code plugins directory
-cd ~/.claude/plugins
+claude plugin install https://github.com/malakhov-dmitrii/beast-plan.git
+```
+
+### Method 2: Via Marketplace
+
+```bash
+# Add marketplace
+mkdir -p ~/.claude/plugins/marketplaces/malakhov
+cd ~/.claude/plugins/marketplaces/malakhov
 git clone https://github.com/malakhov-dmitrii/beast-plan.git
+
+# Create manifest
+mkdir -p .claude-plugin
+cat > .claude-plugin/marketplace.json << 'EOF'
+{
+  "name": "malakhov-marketplace",
+  "plugins": {
+    "beast-plan": {
+      "versions": {
+        "1.0.0": {"source": "beast-plan"}
+      }
+    }
+  }
+}
+EOF
+
+# Install
+claude plugin install beast-plan@malakhov-marketplace
+```
+
+### Verify Installation
+
+```bash
+claude plugin list
+# Should show: beast-plan
 ```
 
 Then use `/beast-plan` command in Claude Code.
 
+**⚠️ Note:** Simply cloning to `~/.claude/plugins` won't work - use the installation methods above.
+
 ## Commands
 
-- `/beast-plan` — Start a new planning session
-- `/beast-plan-status` — Check current session progress
-- `/cancel-beast-plan` — Cancel active session
+- `/beast-plan "task description"` — Start a new planning session
+- `/beast-plan-status` — Check all session progress (shows pending, active, legacy)
+- `/cancel-beast-plan` — Cancel active session(s) with optional cleanup
+
+## 🔥 Multi-Session Support (New!)
+
+Run multiple beast-plan sessions concurrently in the same project without interference!
+
+### How It Works
+
+Each Claude Code window gets its own isolated session:
+- **Pending**: New sessions create `.beast-plan/pending-{timestamp}/`
+- **Auto-Claiming**: Hook claims pending session using transcript path
+- **Isolated**: Each session gets `.beast-plan/sessions/{session-id}/`
+- **No Conflicts**: Sessions don't interfere with each other
+
+### Example: Concurrent Sessions
+
+**Terminal 1:**
+```
+/beast-plan "Implement authentication"
+```
+
+**Terminal 2 (same project):**
+```
+/beast-plan "Add payment processing"
+```
+
+Both run independently! Check status:
+```
+/beast-plan-status
+
+SESSION ID   STATUS    PHASE      ITER  STARTED              UPDATED
+abc123      ✓ active   pipeline   2/5   2026-02-16 10:30    2026-02-16 11:45
+def456      ✓ active   research   1/5   2026-02-16 11:00    2026-02-16 11:15
+```
+
+**Backward Compatible:** Legacy flat-structure sessions (`.beast-plan/state.json`) still work unchanged.
 
 ## Structure
 
@@ -84,6 +153,93 @@ beast-plan/
 │       └── SKILL.md     # Full orchestration protocol
 └── tests/
 ```
+
+## Troubleshooting
+
+### "No such skill" error
+
+**Problem:** Installed plugin but `/beast-plan` not recognized.
+
+**Solution:**
+1. Verify: `claude plugin list` (should show beast-plan)
+2. If not listed, reinstall: `claude plugin install https://github.com/malakhov-dmitrii/beast-plan.git`
+3. Restart Claude Code completely
+4. Try `/beast-plan "test"` again
+
+### Stale pending sessions
+
+**Problem:** Crashed sessions leave `pending-*` directories.
+
+**Solution:**
+```bash
+/beast-plan-status          # Shows stale sessions
+/cancel-beast-plan          # Clean them up
+```
+
+### Hook not executing
+
+**Problem:** Session stays in `pending-*` forever.
+
+**Check:**
+```bash
+# Verify hook exists
+ls ~/.claude/plugins/cache/*/beast-plan/*/hooks/stop-hook.sh
+
+# Make executable
+chmod +x ~/.claude/plugins/cache/*/beast-plan/*/hooks/stop-hook.sh
+```
+
+---
+
+## 🇷🇺 Русская инструкция
+
+### Установка
+
+**Быстрая установка:**
+```bash
+claude plugin install https://github.com/malakhov-dmitrii/beast-plan.git
+```
+
+**Проверка:**
+```bash
+claude plugin list
+# Должен быть: beast-plan
+```
+
+### Использование
+
+```
+/beast-plan "Реализовать аутентификацию"
+```
+
+**Статус:**
+```
+/beast-plan-status
+```
+
+### Что это?
+
+Beast-plan создает качественные планы через проверку 5 специализированными агентами:
+1. **Researcher** — исследует код и документацию
+2. **Planner** — создает детальный план
+3. **Skeptic** — ловит ошибки и нереальные предположения
+4. **TDD Reviewer** — проверяет тесты
+5. **Critic** — оценивает качество (≥20/25 для одобрения)
+
+### Несколько сессий одновременно
+
+Можно запускать несколько сессий в одном проекте — они не мешают друг другу!
+
+### Проблема: "No such skill"
+
+**Решение:**
+1. `claude plugin list` — проверьте установку
+2. `claude plugin install https://github.com/malakhov-dmitrii/beast-plan.git` — переустановите
+3. Перезапустите Claude Code
+
+⚠️ **Важно:** Просто `git clone` в `~/.claude/plugins` не работает! Используйте `claude plugin install`.
+
+---
 
 ## License
 
