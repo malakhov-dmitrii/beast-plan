@@ -35,32 +35,57 @@ You communicate phase transitions via two signals:
 
 **CRITICAL:** Always update `.beast-plan/state.json` BEFORE emitting `<bp-phase-done>`. The Stop hook reads state.json to determine the next action.
 
+## Important: Directory Path Handling
+
+The orchestrator writes to `.beast-plan/pending-{timestamp}/` initially.
+
+After the first hook execution, this directory will be MOVED to `.beast-plan/sessions/{session-id}/` by the hook.
+
+**This works because:**
+1. All orchestrator reads/writes happen during initialization and interview phases (before first hook)
+2. Hook moves entire directory preserving all files
+3. Subsequent hook executions use the sessions path
+4. Orchestrator doesn't need to know the final session ID
+
+**File paths to use:**
+- In Phase 0-1 (before first hook): `.beast-plan/pending-{timestamp}/CONTEXT.md`
+- Hook handles the move automatically
+- You don't need to update paths - hook finds the session
+
 ## Phase 0: Initialize
 
 When beast-plan is invoked:
 
-1. **Check for existing session:**
-   - If `.beast-plan/state.json` exists with `active: true`:
-     - Tell the human: "An active beast-plan session was found (phase: X, iteration: Y). Resume or restart?"
+1. **Check for existing sessions:**
+   - Check for active sessions in `.beast-plan/pending-*/` and `.beast-plan/sessions/*/`
+   - If found: "Existing beast-plan sessions detected. Starting new session."
+   - Legacy check: If `.beast-plan/state.json` exists (flat structure):
+     - Tell the human: "A legacy beast-plan session was found (phase: X, iteration: Y). Resume or restart?"
      - If resume: continue from current state
      - If restart: delete `.beast-plan/` and start fresh
 
-2. **Create directory structure:**
+2. **Determine pending session ID:**
+   - Generate from timestamp: `pending-{unix-timestamp}`
+   - Example: `pending-1707945123`
+   - This is temporary - hook will claim and assign final ID from transcript
+
+3. **Create pending directory structure:**
    ```
    .beast-plan/
-     state.json
-     iterations/
+     pending-{timestamp}/
+       state.json
+       iterations/
    ```
 
-3. **Add to .gitignore:**
+4. **Add to .gitignore:**
    - Read `.gitignore` (create if doesn't exist)
    - Append `.beast-plan/` if not already present
 
-4. **Initialize state.json:**
+5. **Initialize state.json** at `.beast-plan/pending-{timestamp}/state.json`:
    ```json
    {
      "active": true,
-     "session_id": "beast-plan-{timestamp}",
+     "session_id": "pending-{timestamp}",
      "task_description": "{user's request}",
      "iteration": 1,
      "max_iterations": 5,
@@ -75,7 +100,13 @@ When beast-plan is invoked:
    }
    ```
 
-5. Proceed to Phase 1.
+   **Note:** No `transcript_path` field - hook will add it during claiming.
+
+6. **Store pending directory path** for subsequent operations:
+   - Remember: `BEAST_DIR=".beast-plan/pending-{timestamp}"`
+   - All file operations use this path: `{BEAST_DIR}/CONTEXT.md`, `{BEAST_DIR}/iterations/`, etc.
+
+7. Proceed to Phase 1.
 
 ## Phase 1: Interview (Gray Areas)
 

@@ -2,6 +2,24 @@
 description: Start automated iterative planning with 5-actor verification pipeline (Researcher → Planner → Skeptic → TDD Reviewer → Critic)
 ---
 
-Invoke the `beast-plan:beast-plan` skill and follow it exactly.
+Before starting, check for existing active sessions:
 
-Target task: $ARGUMENTS
+1. **Scan for sessions:**
+   - Pending: `.beast-plan/pending-*/state.json`
+   - Active: `.beast-plan/sessions/*/state.json`
+   - Legacy: `.beast-plan/state.json`
+
+2. **If existing sessions found:**
+   - Count active sessions
+   - Show: "Existing beast-plan sessions detected: {count} active"
+   - List them briefly: "{session-id}: {phase} ({iteration}/{max})"
+   - Note: "Starting new session..."
+
+3. **Invoke the skill:**
+   ```
+   Invoke the `beast-plan:beast-plan` skill and follow it exactly.
+
+   Target task: $ARGUMENTS
+   ```
+
+The skill will create a new pending session that coexists with any existing sessions.
